@@ -4,7 +4,7 @@
    목적   : 복합표본 설계를 반영한 종속변수 분포 확인
    ============================================================ */
 
-proc import datafile='/home/u63652680/kwcs2023_clean.csv'
+proc import datafile='/home/u63652680/KWCS/kwcs2023_clean.csv'
     out=work.kwcs dbms=csv replace;
     guessingrows=max;   /* 250개 열, 타입 추론 잘림 방지 */
 run;
@@ -36,3 +36,49 @@ proc surveyfreq data=work.kwcs;
     weight  wt2;
     tables  satisfaction / cl;
 run;
+
+/* ------------------------------------------------------------
+   2.2-1 종속변수와의 순위상관 (Spearman)
+     변수 유형이 순서형이므로 Pearson이 아닌 Spearman을 쓴다.
+     상위 상관 변수만 예시로 지정한다.
+   ------------------------------------------------------------ */
+proc corr data=work.kwcs spearman nosimple;
+    var wbalance weng1 weng2 wstat1 wsituation11 safeinform
+        emp_manaqual1 heal_cond heal_risk hazard_erg3 income_bal;
+    with satisfaction;
+run;
+
+/* ------------------------------------------------------------
+   2.2-2 신뢰도 분석 (Cronbach's alpha)
+     alpha  : 문항들이 하나의 개념을 재고 있는지 판단
+     nomiss : 완전응답자만 사용 (Python 결과와 맞추기 위함)
+     출력의 'Cronbach Coefficient Alpha with Deleted Variable'에서
+     특정 문항을 뺐을 때 alpha가 오르면 그 문항이 척도를 해치는 것이다.
+   ------------------------------------------------------------ */
+proc corr data=work.kwcs alpha nomiss nosimple;
+    var wsituation1-wsituation14;
+    title '업무상황 14문항 신뢰도';
+run;
+
+proc corr data=work.kwcs alpha nomiss nosimple;
+    var who1-who5;
+    title 'WHO-5 정신건강 5문항 신뢰도';
+run;
+
+proc corr data=work.kwcs alpha nomiss nosimple;
+    var hazard_phy1-hazard_phy9;
+    title '물리적 위험노출 9문항 신뢰도';
+run;
+
+/* alpha가 낮은 블록 - 역방향 문항 진단 */
+proc corr data=work.kwcs alpha nomiss nosimple;
+    var hazard_erg1 hazard_erg2 hazard_erg3
+        hazard_erg4 hazard_erg5 hazard_erg6;
+    title '인간공학 위험 6문항 - alpha 0.41, 역방향 문항 탐색';
+run;
+
+proc corr data=work.kwcs alpha nomiss nosimple;
+    var condim1-condim6;
+    title '작업특성 6문항 - alpha 0.58, 역방향 문항 탐색';
+run;
+title;
