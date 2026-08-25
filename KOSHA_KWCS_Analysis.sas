@@ -82,3 +82,153 @@ proc corr data=work.kwcs alpha nomiss nosimple;
     title '작업특성 6문항 - alpha 0.58, 역방향 문항 탐색';
 run;
 title;
+
+/* ------------------------------------------------------------
+   2.2-4 탐색적 요인분석 (PROC FACTOR)
+
+     method=principal : 주성분 방식으로 요인 추출
+     rotate=varimax   : 직교회전. 요인 간 상관을 0으로 두고
+                        각 문항이 한 요인에만 크게 적재되도록 축을 돌린다
+     mineigen=1       : Kaiser 기준. 고유값 1 초과 요인만 유지
+     scree            : 스크리 도표. 고유값이 꺾이는 지점을 눈으로 확인
+     nfactors=n       : 요인 수를 직접 지정 (mineigen과 함께 쓰면 우선 적용)
+
+     출력에서 볼 것
+       (1) Eigenvalues of the Correlation Matrix - 고유값과 누적 설명분산
+       (2) Rotated Factor Pattern - 회전 후 적재량. 절대값 0.4 이상을 소속으로 본다
+       (3) Scree Plot - 꺾이기 직전까지가 유지할 요인 수
+   ------------------------------------------------------------ */
+
+proc factor data=work.kwcs
+        method=principal rotate=varimax mineigen=1 scree;
+    var wsituation1-wsituation14;
+    title '업무상황 14문항 - 요인분석';
+run;
+
+proc factor data=work.kwcs method=principal rotate=varimax mineigen=1;
+    var wstat1-wstat7;
+    title 'wstat 업무동의 7문항';
+run;
+
+proc factor data=work.kwcs method=principal rotate=varimax mineigen=1;
+    var weng1-weng5;
+    title 'weng 직무열의 5문항 - alpha 0.732 였으나 차원 확인 필요';
+run;
+
+proc factor data=work.kwcs method=principal rotate=varimax mineigen=1;
+    var hazard_phy1-hazard_phy9;
+    title 'hazard_phy 물리위험 9문항';
+run;
+
+proc factor data=work.kwcs method=principal rotate=varimax mineigen=1;
+    var wtime_length1-wtime_length5;
+    title 'wtime_length 근무형태 5문항';
+run;
+
+proc factor data=work.kwcs method=principal rotate=varimax mineigen=1;
+    var heal_prob1 heal_prob2 heal_prob3 heal_prob4
+        heal_prob5 heal_prob6 heal_prob8;
+    title 'heal_prob 건강문제 7문항';
+run;
+
+/* 1요인으로 예상되는 블록 - 검증용. 요인이 1개면 회전이 생략된다 */
+proc factor data=work.kwcs method=principal rotate=varimax mineigen=1;
+    var who1-who5;
+    title 'WHO-5 - 1요인 확인';
+run;
+title;
+
+/* ------------------------------------------------------------
+   2.3-4 요인분석 결과 해석
+
+   [로그의 WARNING 은 정상이다]
+     "n of 30012 observations omitted due to missing values"
+     PROC FACTOR 는 목록별 제거(listwise deletion)를 사용한다.
+     문항 중 하나라도 결측이면 해당 관측치를 통째로 제외한다.
+     Python 의 dropna() 와 동일한 동작이며, 제외 건수가
+     7개 블록 모두 Python 표본 크기와 정확히 일치했다.
+       wsituation   4,185 제외 -> 25,827
+       wstat        2,501 제외 -> 27,511
+       weng            44 제외 -> 29,968
+       hazard_phy     181 제외 -> 29,831
+       wtime_length    96 제외 -> 29,916
+       heal_prob       92 제외 -> 29,920
+       who             42 제외 -> 29,970
+
+   [로그의 NOTE 읽는 법]
+     "n factors will be retained by the MINEIGEN criterion"
+        고유값 1 초과 요인 개수. 요인 수 판정 결과다.
+     "Rotation converged. Criterion changed ... in n cycles"
+        베리맥스 회전이 정상 수렴했다는 뜻. 반복 횟수는 의미 없다.
+     "Rotation not possible with 1 factor"
+        요인이 1개면 돌릴 축이 없다. 1차원 척도임이 확인된 것으로,
+        WHO-5 에서 예상대로 출력되었다.
+
+   [출력 표에서 볼 것]
+     (1) Eigenvalues of the Correlation Matrix
+         고유값과 누적 설명분산. 1을 넘는 개수가 요인 수다.
+     (2) Rotated Factor Pattern
+         회전 후 적재량. 절대값 0.4 이상을 소속 요인으로 본다.
+         부호는 무시한다. 요인 방향은 계산 과정에서 임의로 정해지므로
+         Python 이 -0.87, SAS 가 +0.87 이어도 같은 결과다.
+         두 요인 모두 0.4 이상이면 교차적재이며 해석에 주의한다.
+     (3) Scree Plot
+         고유값이 급격히 꺾이다 완만해지는 직전까지가 유지할 요인 수.
+         Kaiser 기준이 기계적이라면 스크리는 눈으로 판단하는 보완 수단이다.
+
+   [요인 수 판정 결과]
+     3요인  wsituation   (5.48 / 1.58 / 1.25)
+     2요인  wstat        (2.82 / 1.23)
+            weng         (2.44 / 1.54)  <- alpha 0.732 였으나 별개 개념
+            hazard_phy   (5.67 / 1.01)  <- 경계값, 스크리 확인 필요
+            wtime_length (3.00 / 1.00)  <- 경계값, 스크리 확인 필요
+            heal_prob    (2.62 / 1.28)
+     1요인  who, emp_manaqual, emp_comp_ass, hazard_psy, wwa,
+            sleep, imte, decla, hazard_erg(erg5제외), condim(4제외)
+
+   [SAS 와 Python 의 역할 분담]
+     항목-총점 상관은 PROC CORR ALPHA 출력에 이미 포함되므로
+     SAS 에는 Python 의 2.3-3 에 해당하는 별도 단계가 없다.
+     반대로 스크리 도표는 SAS 만 제공한다.
+   ------------------------------------------------------------ */
+  /* ------------------------------------------------------------
+   2.3-4 보충 : 출력 표에서 놓치기 쉬운 지표
+
+   [Final Communality Estimates - 공통성]
+     해당 문항의 분산 중 추출된 요인들이 설명하는 비율.
+     0.4 미만이면 고유분산이 커서 요인 구조에 잘 맞지 않는다.
+
+     0.4 미만으로 확인된 문항
+       wsituation6 (원할 때 휴식 가능) 0.392
+       heal_prob4  (두통, 눈의 피로)    0.356
+       heal_prob6  (전신 피로)          0.342
+     세 문항 모두 Rotated Factor Pattern 에서 교차적재를 보였다.
+     공통성과 교차적재가 같은 결론을 가리키므로 지수 구성에서 제외를 검토한다.
+
+     교차적재라도 공통성이 높으면 성격이 다르다.
+       hazard_phy5 (분진 흡입) 적재 0.538 / 0.618, 공통성 0.672
+       요인에 안 맞는 것이 아니라 두 요인 모두와 관련된 문항이다.
+
+     wtime_length5 (교대근무) 공통성 0.9996, 적재 0.99976
+       제2요인을 단독 점유. 다른 문항과 공유 분산이 없으므로
+       지수가 아니라 단독 변수로 사용한다.
+
+   [Eigenvalues 표의 Difference 열 - 스크리 판독]
+     인접 고유값의 차이. 낙차가 큰 지점 다음이 elbow 다.
+       wsituation  3.899 -> 0.330 -> 0.505 -> 0.023  4번째부터 평탄, 3요인 지지
+       hazard_phy  4.665 -> 0.351 -> 0.273           2,3번 낙차 유사, 경계 사례
+
+   [Variance Explained by Each Factor - 회전 전후 비교]
+     회전은 설명분산 총량을 바꾸지 않고 요인 간 배분만 바꾼다.
+       wsituation 회전 전 5.475 / 1.576 / 1.246 (합 8.297)
+                  회전 후 3.653 / 2.897 / 1.748 (합 8.297)
+     합이 같은지 확인하면 회전이 정상 수행되었음을 검산할 수 있다.
+
+   [Python 과의 차이 - Kaiser 정규화]
+     ROTATE=VARIMAX 의 기본값은 NORM=KAISER 다.
+     회전 전에 각 문항의 적재 벡터를 공통성으로 나눠 길이를 1로 맞추고
+     회전 후 되돌린다. 공통성이 큰 문항이 회전 방향을 독점하는 것을 막는다.
+     Python 구현에 이를 반영하지 않으면 적재량이 최대 0.02 어긋난다.
+     (반영 후 최대 오차 0.0005 로 일치. 요인 수와 배정 결론은 동일)
+   ------------------------------------------------------------ */
+  
