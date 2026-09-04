@@ -275,19 +275,42 @@ title;
 
 /* ------------------------------------------------------------
    2.4-4 제거 적용
-     Python 에서 확정한 목록을 DROP 문에 넣는다.
-     실제 목록은 Python 실행 결과로 교체할 것.
+     Python 의 drop_final 61개를 그대로 옮겼다.
+     두 도구는 자동 동기화되지 않으므로 목록 이관은 수작업이다.
+     적용 후 변수 수가 189개인지 반드시 확인한다.
    ------------------------------------------------------------ */
 data work.kwcs_sel;
     set work.kwcs;
     drop
+        /* 조사 운영 / 상수 */
         emp_type estat country mode panel_survey target
         hh_num eli_num year
-        /* ← Python 의 drop_final 출력을 여기에 이어서 기입 */
+        /* 고용 특성 */
+        emp_con_term emp_fptime emp_own_mgmt emp_stat_sp
+        emp_wage emp_place emp_rep emp_boss_gender emp_tra2
+        comp_size1 comp_emp job1 job_c1_r
+        /* 소득 구성 */
+        income_con income_pos2 income_pos3 income_pos4 income_pos5
+        income_pos6 income_pos7 income_pos9
+        /* 근로시간 */
+        ctime wday_week wtime_con_r ptime_r wtime_arr1
+        wtime_ftwork wtime_ftcomtool wcomback
+        wtime_long_a wtime_night3 wtime_resilience
+        emp_con_period_r
+        /* 작업 방식 */
+        useequip2 useequip3 winten1_1
+        winten3_1 winten3_2 winten3_3 winten3_4 winten3_5
+        skillmat ass_cust1 alter_task1 wteam1
+        /* 조직 변화 */
+        ch_tech ch_restruct
+        /* 근무 장소 */
+        wplace4 wpalce_ch
+        /* 건강 / 업무 외 활동 */
+        heal_abs1 woutside2 woutside5
     ;
 run;
 
 proc contents data=work.kwcs_sel varnum;
-    title '1차 선택 후 변수 목록';
+    title '1차 선택 후 - 변수 189개 확인';
 run;
 title;
