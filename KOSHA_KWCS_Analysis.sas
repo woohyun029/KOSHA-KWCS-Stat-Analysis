@@ -367,3 +367,60 @@ title;
      (2.5 에서 수행)
    ------------------------------------------------------------ */
  
+ /* ============================================================
+   2.5 파생변수 생성
+     지수(index) = 비슷한 개념을 묻는 문항들을 하나의 숫자로 합친 변수
+     방식 : 평균. 결측이 있어도 응답한 문항만으로 계산 가능하다.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   2.5-1 WHO-5 정신건강 지수
+
+     원 문항 who1~who5 : 1 항상 그랬다 ~ 6 그런 적 없다
+       숫자가 클수록 부정적이므로 역코딩한다.
+       역코딩 공식 : 새 값 = (최소 + 최대) - 원래 = 7 - 원래
+
+     [주의] SAS 의 변수 목록 축약 x1-x5 는
+            숫자가 이름 맨 끝에 있을 때만 쓸 수 있다.
+            who1_r 처럼 뒤에 _r 이 붙으면 뺄셈으로 해석되어 오류가 난다.
+            따라서 여기서는 문항을 하나씩 나열한다.
+
+     SAS 함수
+       n(of ...)     결측이 아닌 값의 개수를 센다
+       mean(of ...)  결측을 자동 제외하고 나머지의 평균을 낸다
+                     (Python 의 mean(skipna=True) 와 동일)
+   ------------------------------------------------------------ */
+data work.kwcs_idx;
+    set work.kwcs_sel;
+
+    /* 역코딩 : 클수록 좋음으로 방향 통일 */
+    who1_r = 7 - who1;
+    who2_r = 7 - who2;
+    who3_r = 7 - who3;
+    who4_r = 7 - who4;
+    who5_r = 7 - who5;
+
+    /* 응답 문항 수가 3개 이상일 때만 지수 생성 */
+    n_who = n(of who1_r who2_r who3_r who4_r who5_r);
+
+    if n_who >= 3 then
+        idx_wellbeing = mean(of who1_r who2_r who3_r who4_r who5_r);
+    else
+        idx_wellbeing = .;
+
+    drop who1_r who2_r who3_r who4_r who5_r n_who;
+run;
+
+/* 검증 1 : 지수의 분포 */
+proc means data=work.kwcs_idx n nmiss mean std min max maxdec=2;
+    var idx_wellbeing;
+    title 'WHO-5 지수 - 기본 통계 (이론 범위 1.00~6.00)';
+run;
+
+/* 검증 2, 3 : 원본 문항 및 종속변수와의 상관 */
+proc corr data=work.kwcs_idx spearman nosimple;
+    var who1-who5 satisfaction;
+    with idx_wellbeing;
+    title 'WHO-5 지수 - 원본 문항 및 종속변수와의 상관';
+run;
+title;
