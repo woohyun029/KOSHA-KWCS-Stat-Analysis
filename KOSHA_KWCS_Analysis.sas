@@ -424,3 +424,33 @@ proc corr data=work.kwcs_idx spearman nosimple;
     title 'WHO-5 지수 - 원본 문항 및 종속변수와의 상관';
 run;
 title;
+
+/* ------------------------------------------------------------
+   2.5-2 지수화 효과 검증 : 공선성 해소
+
+     다중공선성(multicollinearity)
+       서로 비슷한 변수를 함께 넣으면 각 변수의 기여를 구분할 수 없어
+       계수가 불안정해지는 현상.
+     VIF (Variance Inflation Factor, 분산팽창지수)
+       해당 변수를 나머지 변수들로 예측했을 때의 겹침 정도.
+       1에 가까울수록 독립적. 통상 5 초과 주의, 10 초과 문제.
+
+     PROC REG 의 vif 옵션으로 확인한다.
+     종속변수는 형식상 satisfaction 을 쓰지만
+     여기서 보려는 것은 회귀계수가 아니라 설명변수 간 VIF 다.
+   ------------------------------------------------------------ */
+
+/* (A) 개별 문항 5개 투입 */
+proc reg data=work.kwcs_idx plots=none;
+    model satisfaction = who1 who2 who3 who4 who5 / vif;
+    title 'VIF (A) 개별 문항 5개 투입';
+run;
+quit;
+
+/* (B) 지수 1개 + 다른 변수 투입 */
+proc reg data=work.kwcs_idx plots=none;
+    model satisfaction = idx_wellbeing wbalance age wtime_r / vif;
+    title 'VIF (B) 지수 1개 투입';
+run;
+quit;
+title;
