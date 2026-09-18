@@ -534,3 +534,28 @@ title;
      model 문 앞에 라벨(예: A_items:)을 붙이면
      여러 모델을 한 번에 돌리고 출력에서 구분할 수 있다.
    ------------------------------------------------------------ */
+  
+/* ------------------------------------------------------------
+   2.5-3 동일 표본에서 모델 비교
+
+     앞의 PROC REG 에서 A 는 29,970명, B 는 28,829명을 사용했다.
+     wtime_r 의 결측 때문에 표본이 달라 R2 를 직접 비교할 수 없다.
+     두 모델에 필요한 변수가 모두 있는 관측치만 남겨 다시 비교한다.
+   ------------------------------------------------------------ */
+  
+data work.cmp;
+    set work.kwcs_idx;
+    if nmiss(of satisfaction idx_wellbeing wbalance age wtime_r
+                who1 who2 who3 who4 who5) = 0;
+run;
+
+proc reg data=work.cmp plots=none;
+    A_items:    model satisfaction = who1 who2 who3 who4 who5;
+    B_index:    model satisfaction = idx_wellbeing;
+    C_items_x:  model satisfaction = who1 who2 who3 who4 who5
+                                     wbalance age wtime_r / vif;
+    D_index_x:  model satisfaction = idx_wellbeing wbalance age wtime_r / vif;
+    title '동일 표본 기준 모델 비교';
+run;
+quit;
+title;
