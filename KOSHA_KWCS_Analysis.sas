@@ -602,3 +602,37 @@ title;
      PROC SURVEYLOGISTIC 으로 복합표본 설계를 반영해 재확인한다.
    ------------------------------------------------------------ */
   
+/* ------------------------------------------------------------
+   2.5-4 지수 생성 준비 : 블록별 척도 범위 확인
+
+     역코딩 공식은 (최소 + 최대) - 원래값 이므로
+     블록마다 척도 범위를 먼저 알아야 한다.
+     PROC MEANS 의 min, max 로 실제 관측 범위를 확인한다.
+
+     [주의] 관측 범위는 '데이터에 실제로 나타난 값' 이다.
+            예를 들어 1~5 척도인데 아무도 5를 고르지 않았다면
+            최대값이 4로 나온다. 최종 확인은 코드북으로 해야 한다.
+   ------------------------------------------------------------ */
+  
+proc means data=work.kwcs_idx min max n nmiss maxdec=0;
+    var emp_manaqual1-emp_manaqual5
+        hazard_erg1 hazard_erg2 hazard_erg3 hazard_erg4 hazard_erg6
+        hazard_psy1-hazard_psy3
+        wwa1-wwa5  sleep1-sleep3  imte1-imte5;
+    title '블록별 척도 범위 (1) - 상사자질 / 위험 / 일가정 / 수면 / 기술';
+run;
+
+proc means data=work.kwcs_idx min max n nmiss maxdec=0;
+    var condim1 condim2 condim3 condim5 condim6
+        decla1-decla3  wstat1-wstat7  weng1-weng5
+        wtime_length1-wtime_length4;
+    title '블록별 척도 범위 (2) - 작업특성 / 자율성 / 업무동의 / 열의 / 근무형태';
+run;
+
+proc means data=work.kwcs_idx min max n nmiss maxdec=0;
+    var heal_prob1-heal_prob6 heal_prob8
+        asb1-asb7
+        disc1 disc5 disc6 disc7 disc8 disc9 disc10 disc11;
+    title '블록별 척도 범위 (3) - 건강문제 / 폭력 / 차별';
+run;
+title;
